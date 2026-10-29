@@ -12,8 +12,9 @@ const okResult = {
   attempts: 1,
 };
 
-function app(answer: AppDeps["answer"] = vi.fn().mockResolvedValue(okResult)) {
+function app(answer: AppDeps["answer"] = vi.fn().mockResolvedValue(okResult), extra: Partial<AppDeps> = {}) {
   return createApp({
+    ...extra,
     answer,
     allowedCollections: ["movies"],
     corsOrigins: ["http://localhost:5173"],
@@ -81,6 +82,24 @@ describe("POST /v1/query", () => {
     const res = await request(app(answer)).post("/v1/query").send(body);
     expect(res.status).toBe(500);
     expect(res.body).toEqual({ error: { code: "internal", message: "Internal server error." } });
+  });
+});
+
+describe("rate limiting", () => {
+  it("answers 429 with the JSON error contract once the limit is exceeded", async () => {
+    const server = app(undefined, { rateLimitPerMinute: 1 });
+    expect((await request(server).post("/v1/query").send(body)).status).toBe(200);
+    const res = await request(server).post("/v1/query").send(body);
+    expect(res.status).toBe(429);
+    expect(res.headers["content-type"]).toMatch(/application\/json/);
+    expect(res.body).toEqual({ error: { code: "rate_limited", message: "Too many requests." } });
+  });
+
+  it("keeps /healthz outside the limiter", async () => {
+    const server = app(undefined, { rateLimitPerMinute: 1 });
+    await request(server).post("/v1/query").send(body);
+    expect((await request(server).get("/healthz")).status).toBe(200);
+    expect((await request(server).get("/healthz")).status).toBe(200);
   });
 });
 

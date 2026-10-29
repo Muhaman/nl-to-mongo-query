@@ -31,6 +31,13 @@ export class LlmTruncatedError extends AppError {
   }
 }
 
+export class LlmUpstreamError extends AppError {
+  constructor() {
+    super(502, "upstream_error", "The model provider request failed.");
+    this.name = "LlmUpstreamError";
+  }
+}
+
 export class LlmOutputError extends AppError {
   constructor() {
     super(502, "invalid_model_output", "The model returned an unreadable reply.");

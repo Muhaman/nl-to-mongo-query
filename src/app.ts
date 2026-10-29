@@ -13,6 +13,8 @@ export interface AppDeps {
   allowedCollections: string[];
   corsOrigins: string[];
   logger: Logger;
+  /** Requests per minute per client. Defaults to 30. */
+  rateLimitPerMinute?: number;
 }
 
 export function createApp(deps: AppDeps): Express {
@@ -35,12 +37,22 @@ export function createApp(deps: AppDeps): Express {
 
   app.use(helmet());
   app.use(cors({ origin: deps.corsOrigins }));
-  // Every query costs an LLM call, so the limit is deliberately tight.
-  app.use(rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false }));
-
   app.get("/healthz", (_req, res) => {
     res.json({ status: "ok" });
   });
+
+  // Every query costs an LLM call, so the limit is deliberately tight.
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit: deps.rateLimitPerMinute ?? 30,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json({ error: { code: "rate_limited", message: "Too many requests." } });
+      },
+    }),
+  );
 
   app.use("/v1/query", express.json({ limit: "10kb" }), queryRouter(deps));
 

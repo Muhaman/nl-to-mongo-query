@@ -1,5 +1,5 @@
-import type Anthropic from "@anthropic-ai/sdk";
-import { LlmRefusalError, LlmTruncatedError, type Llm, type LlmRequest } from "./generate.js";
+import Anthropic from "@anthropic-ai/sdk";
+import { LlmRefusalError, LlmTruncatedError, LlmUpstreamError, type Llm, type LlmRequest } from "./generate.js";
 
 const MAX_TOKENS = 16_000;
 
@@ -25,15 +25,21 @@ export class ClaudeLlm implements Llm {
   ) {}
 
   async complete({ system, prompt }: LlmRequest): Promise<string> {
-    const response = await this.client.beta.messages.create({
-      model: this.model,
-      max_tokens: MAX_TOKENS,
-      system,
-      output_config: { effort: "medium", format: OUTPUT_FORMAT },
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
-      messages: [{ role: "user", content: prompt }],
-    });
+    let response;
+    try {
+      response = await this.client.beta.messages.create({
+        model: this.model,
+        max_tokens: MAX_TOKENS,
+        system,
+        output_config: { effort: "medium", format: OUTPUT_FORMAT },
+        betas: ["server-side-fallback-2026-07-01"],
+        fallbacks: "default",
+        messages: [{ role: "user", content: prompt }],
+      });
+    } catch (err) {
+      if (err instanceof Anthropic.APIError) throw new LlmUpstreamError();
+      throw err;
+    }
 
     if (response.stop_reason === "refusal") throw new LlmRefusalError(response.stop_details?.category ?? null);
     if (response.stop_reason === "max_tokens") throw new LlmTruncatedError();
