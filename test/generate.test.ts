@@ -72,6 +72,22 @@ describe("ClaudeLlm", () => {
     );
   });
 
+  it("sends no betas or fallbacks to models without server-side fallback", async () => {
+    const create = vi.fn().mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: "{}" }] });
+    await new ClaudeLlm(stubClient(create), "claude-haiku-5-5").complete(request);
+    const params = create.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(params).not.toHaveProperty("betas");
+    expect(params).not.toHaveProperty("fallbacks");
+  });
+
+  it.each(["claude-opus-5-5", "claude-sonnet-5-5"])("enables the fallback beta for %s", async (model) => {
+    const create = vi.fn().mockResolvedValue({ stop_reason: "end_turn", content: [{ type: "text", text: "{}" }] });
+    await new ClaudeLlm(stubClient(create), model).complete(request);
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({ betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" }),
+    );
+  });
+
   it("maps stop_reason refusal to LlmRefusalError", async () => {
     const create = vi
       .fn()

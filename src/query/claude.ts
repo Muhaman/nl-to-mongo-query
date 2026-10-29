@@ -3,6 +3,9 @@ import { LlmRefusalError, LlmTruncatedError, LlmUpstreamError, type Llm, type Ll
 
 const MAX_TOKENS = 16_000;
 
+// Server-side refusal fallback is only accepted by these models; others (e.g. Haiku) reject the parameter.
+const FALLBACK_MODELS = new Set(["claude-opus-5-5", "claude-sonnet-5-5"]);
+
 // Strict structured output: the pipeline travels as a JSON string because
 // aggregation stages are open-ended and cannot be expressed as a closed schema.
 const OUTPUT_FORMAT = {
@@ -32,8 +35,7 @@ export class ClaudeLlm implements Llm {
         max_tokens: MAX_TOKENS,
         system,
         output_config: { effort: "medium", format: OUTPUT_FORMAT },
-        betas: ["server-side-fallback-2026-07-01"],
-        fallbacks: "default",
+        ...(FALLBACK_MODELS.has(this.model) ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
         messages: [{ role: "user", content: prompt }],
       });
     } catch (err) {
