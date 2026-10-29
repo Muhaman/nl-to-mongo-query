@@ -1,0 +1,442 @@
+[
+  {
+    "question": "How many movies are in the collection? Return a single document with the field total.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$count": "total"
+      }
+    ]
+  },
+  {
+    "question": "List the titles of all movies directed by Jarek Garrick.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "director": "Jarek Garrick"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "What is the average rating of movies released in 2010 or later? Return one document with the field avgRating.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "year": {
+            "$gte": 2010
+          }
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "avgRating": {
+            "$avg": "$rating"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "avgRating": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "Which five movies have the highest box office? Return title and boxOffice, highest first.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$sort": {
+          "boxOffice": -1
+        }
+      },
+      {
+        "$limit": 5
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1,
+          "boxOffice": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "How many movies are there per genre? Return documents with the fields genre and count.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$unwind": "$genres"
+      },
+      {
+        "$group": {
+          "_id": "$genres",
+          "count": {
+            "$sum": 1
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "genre": "$_id",
+          "count": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "List the titles of movies with a rating of at least 9.0.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "rating": {
+            "$gte": 9.0
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "How many movies are longer than 150 minutes? Return one document with the field count.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "runtime": {
+            "$gt": 150
+          }
+        }
+      },
+      {
+        "$count": "count"
+      }
+    ]
+  },
+  {
+    "question": "What is the total box office of all movies directed by Corin Northcott? Return one document with the field total.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "director": "Corin Northcott"
+        }
+      },
+      {
+        "$group": {
+          "_id": null,
+          "total": {
+            "$sum": "$boxOffice"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "total": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "List the title and year of Sci-Fi movies released before 1980.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "genres": "Sci-Fi",
+          "year": {
+            "$lt": 1980
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1,
+          "year": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "Which directors have made more than 12 movies? Return documents with the fields director and movies.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$group": {
+          "_id": "$director",
+          "movies": {
+            "$sum": 1
+          }
+        }
+      },
+      {
+        "$match": {
+          "movies": {
+            "$gt": 12
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "director": "$_id",
+          "movies": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "What is the shortest runtime of any movie? Return one document with the field shortest.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$group": {
+          "_id": null,
+          "shortest": {
+            "$min": "$runtime"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "shortest": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "List the titles of movies that star Jarek Ravenscroft.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "cast": "Jarek Ravenscroft"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "How many movies were released in each decade? Return documents with the fields decade (for example 1990) and count.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$group": {
+          "_id": {
+            "$subtract": [
+              "$year",
+              {
+                "$mod": [
+                  "$year",
+                  10
+                ]
+              }
+            ]
+          },
+          "count": {
+            "$sum": 1
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "decade": "$_id",
+          "count": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "Which three movies have the longest runtime? Return title and runtime, longest first.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$sort": {
+          "runtime": -1
+        }
+      },
+      {
+        "$limit": 3
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1,
+          "runtime": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "List the titles of Comedy movies with a rating above 8.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "genres": "Comedy",
+          "rating": {
+            "$gt": 8
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "What is the average runtime per genre? Return documents with the fields genre and avgRuntime.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$unwind": "$genres"
+      },
+      {
+        "$group": {
+          "_id": "$genres",
+          "avgRuntime": {
+            "$avg": "$runtime"
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "genre": "$_id",
+          "avgRuntime": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "How many movies have more than four cast members? Return one document with the field count.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "$expr": {
+            "$gt": [
+              {
+                "$size": "$cast"
+              },
+              4
+            ]
+          }
+        }
+      },
+      {
+        "$count": "count"
+      }
+    ]
+  },
+  {
+    "question": "Which movie from the 1960s has the highest rating? Return its title and rating.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "year": {
+            "$gte": 1960,
+            "$lte": 1969
+          }
+        }
+      },
+      {
+        "$sort": {
+          "rating": -1
+        }
+      },
+      {
+        "$limit": 1
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "title": 1,
+          "rating": 1
+        }
+      }
+    ]
+  },
+  {
+    "question": "Which directors have made a Horror movie? Return one document per director with the field director.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "genres": "Horror"
+        }
+      },
+      {
+        "$group": {
+          "_id": "$director"
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "director": "$_id"
+        }
+      }
+    ]
+  },
+  {
+    "question": "How many movies were released in each year from 2020 onwards? Return documents with the fields year and count.",
+    "collection": "movies",
+    "expectedPipeline": [
+      {
+        "$match": {
+          "year": {
+            "$gte": 2020
+          }
+        }
+      },
+      {
+        "$group": {
+          "_id": "$year",
+          "count": {
+            "$sum": 1
+          }
+        }
+      },
+      {
+        "$project": {
+          "_id": 0,
+          "year": "$_id",
+          "count": 1
+        }
+      }
+    ]
+  }
+]
